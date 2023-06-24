@@ -19,6 +19,7 @@ from bsl.triggers import MockTrigger, TriggerDef
 
 import tensorflow as tf
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 import matplotlib as mpl
 from matplotlib import patches
 
@@ -133,6 +134,36 @@ def stream_receiver():
         print(raw)
         events = mne.find_events(raw, stim_channel='TRIGGER')
         print(events)
+
+# TODO: not implemented
+class Animator():
+    def __init__(self, buffer_duration=5):
+        fig = plt.figure(figsize=(12,7))
+        ax0 = plt.subplot2grid(shape=(2,2), loc=(0,0), colspan=1)
+        ax1 = plt.subplot2grid(shape=(2,2), loc=(1,0), colspan=1)
+        ax1.sharex(ax0)
+
+        ax0.set_title("Raw Signal")
+        ax1.set_title("Processed Signal")
+        ax1.set_xlabel("Time (s)")
+
+        cls_ax = plt.subplot2grid(shape=(1,2), loc=(0,1), colspan=1)
+        norm = mpl.colors.Normalize(vmin=0, vmax=1)
+
+        green_rect = patches.Rectangle((0, 0.75), buffer_duration, 0.25,
+                                       facecolor='tab:green', alpha=0.5)
+        red_rect = patches.Rectangle((0, 0), buffer_duration, 0.25,
+                                     facecolor='tab:red', alpha=0.5)
+        cls_ax.axhline(0, color='tab:red')
+        cls_ax.axhline(1, color='tab:green')
+        cls_ax.set_xticks([])
+        cls_ax.set_yticks([0,1])
+
+    def data_stream_input(self):
+        pass
+
+    def update(self, i):
+        pass
 
 def create_bandpass_filter(low, high, fs, n):
     """
@@ -288,6 +319,7 @@ def real_time_stream(stream_name):
     learning_rate = 1e-3
     loss = 'mse'
     pred_buff_display = 15
+    buff_refresh = 0.3
 
     bufsize = 1
     winsize = 0.5
@@ -331,6 +363,11 @@ def real_time_stream(stream_name):
     ax1 = plt.subplot2grid(shape=(2,2), loc=(1,0), colspan=1)
     ax1.sharex(ax0)
 
+    ax0_title = "Raw Signal"
+    ax1_title = "Processed Signal"
+    ax1_xlabel = "Time (s)"
+    cls_title = "Classifier"
+
     cls_ax = plt.subplot2grid(shape=(1,2), loc=(0,1), colspan=1)
     norm = mpl.colors.Normalize(vmin=0, vmax=1)
 
@@ -344,11 +381,13 @@ def real_time_stream(stream_name):
     cls_ax.set_yticks([0,1])
 
     idx_last_plot = 1
-    dt = 0
+    dt, t0 = 0, 0
+    # set interactive
     while timer.sec() <= demo_time:
+        t0 = timer.sec()
         buffer.update()
         print("----\nupdate cmd\n----")
-        if timer.sec() // 0.5 == idx_last_plot:
+        if dt >= buff_refresh:
             ax0.plot(buffer.timestamps,
                   np.mean(buffer.raw_data[:, 1:], axis=1))
             ax1.plot(buffer.timestamps,
@@ -378,6 +417,16 @@ def real_time_stream(stream_name):
             ax0.cla()
             ax1.cla()
             cls_ax.cla()
+            ax0.set_title(ax0_title)
+            ax1.set_title(ax1_title)
+            ax1.set_xlabel(ax1_xlabel)
+            cls_ax.set_title(cls_title)
+
+            # refresh done, reset timer
+            dt = 0
+
+        # increment timer
+        dt += timer.sec()-t0
 
     del receiver
     # recorder.stop()
@@ -388,23 +437,19 @@ if __name__ == '__main__':
     #######################
     # TESTING
     #######################
-    '''
     # start the streamer for testing
     stream_name = "StreamPlayer"
     fif_file = datasets.eeg_resting_state.data_path()
     player = StreamPlayer(stream_name, fif_file)
     player.start()
     print(player)
-    '''
 
-    stream_name = STREAM_NAME
+    # stream_name = STREAM_NAME
     streams = [stream.name for stream in resolve_streams()]
     print("List of available streams\n: ", streams)
     assert stream_name in streams, f"Cannot find {stream_name}"
     # run the real-time classifier
     real_time_stream(stream_name)
 
-    '''
     player.stop()
     print(player)
-    '''
