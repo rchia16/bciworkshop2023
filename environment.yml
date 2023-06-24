@@ -1,0 +1,18 @@
+name: bciworkshop
+dependencies:
+  - python=3.10
+  - pip
+  - git
+  - jupyter
+  - matplotlib
+  - numpy
+  - pandas
+  - scipy
+  - scikit-learn
+  - tensorflow
+  - pip:
+    - bsl
+    - mne
+    - ipdb
+variables:
+  KMP_DUPLICATE_LIB_OK: True
