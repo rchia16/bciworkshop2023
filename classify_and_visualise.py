@@ -25,6 +25,7 @@ from matplotlib import patches
 
 import pdb
 
+DEBUG = False
 STREAM_NAME = 'EEGLAB'
 WEIGHTS_FNAME = None
 
@@ -438,18 +439,21 @@ if __name__ == '__main__':
     # TESTING
     #######################
     # start the streamer for testing
-    stream_name = "StreamPlayer"
-    fif_file = datasets.eeg_resting_state.data_path()
-    player = StreamPlayer(stream_name, fif_file)
-    player.start()
-    print(player)
+    if DEBUG:
+        stream_name = "StreamPlayer"
+        fif_file = datasets.eeg_resting_state.data_path()
+        player = StreamPlayer(stream_name, fif_file)
+        player.start()
+        print(player)
+    else:
+        stream_name = STREAM_NAME
 
-    # stream_name = STREAM_NAME
     streams = [stream.name for stream in resolve_streams()]
     print("List of available streams\n: ", streams)
     assert stream_name in streams, f"Cannot find {stream_name}"
     # run the real-time classifier
     real_time_stream(stream_name)
 
-    player.stop()
-    print(player)
+    if DEBUG:
+        player.stop()
+        print(player)
